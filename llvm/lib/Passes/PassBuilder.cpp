@@ -355,6 +355,7 @@
 #include "llvm/Transforms/Utils/Debugify.h"
 #include "llvm/Transforms/Utils/DebugRecordCount.h"
 #include "llvm/Transforms/Utils/DeclareRuntimeLibcalls.h"
+#include "llvm/Transforms/Utils/DeleteDebugRecord.h"
 #include "llvm/Transforms/Utils/EntryExitInstrumenter.h"
 #include "llvm/Transforms/Utils/FixIrreducible.h"
 #include "llvm/Transforms/Utils/HelloWorld.h"
