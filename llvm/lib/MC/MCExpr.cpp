@@ -687,6 +687,10 @@ bool MCExpr::evaluateAsRelocatableImpl(MCValue &Res, const MCAssembler *Asm,
   }
 
   llvm_unreachable("Invalid assembly expression kind!");
+  // return Asm->getContext().reportError(
+  //           Sym.getVariableValue()->getLoc(),
+  //           "moja greska");
+  //mozda??
 }
 
 MCFragment *MCExpr::findAssociatedFragment() const {

@@ -1339,6 +1339,7 @@ const MCExpr *MCAsmParser::applySpecifier(const MCExpr *E, uint32_t Spec) {
   switch (E->getKind()) {
   case MCExpr::Specifier:
     llvm_unreachable("cannot apply another specifier to MCSpecifierExpr");
+    //Error(E->getLoc(), "cannot apply another specifier to MCSpecifierExpr");
   case MCExpr::Target:
   case MCExpr::Constant:
     return nullptr;

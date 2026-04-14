@@ -4630,6 +4630,11 @@ bool AArch64AsmParser::parseSymbolicImmVal(const MCExpr *&ImmVal) {
   bool HasELFModifier = false;
   AArch64::Specifier RefKind;
   SMLoc Loc = getLexer().getLoc();
+
+  if(getTok().is(AsmToken::Colon) && getParser().getContext().getTargetTriple().isOSBinFormatMachO()) {
+    return TokError("unexpected token in argument list");
+  }
+  
   if (parseOptionalToken(AsmToken::Colon)) {
     HasELFModifier = true;
 
@@ -5617,6 +5622,8 @@ bool AArch64AsmParser::parseInstruction(ParseInstructionInfo &Info,
     } while (parseOptionalToken(AsmToken::Comma));
   }
 
+  // ovde se izgenerise greska za tokene @PAGE/@PAGEOFF koja se generise za linux
+  // tj ako izparsirao sve i ostalo je nesto sto se ne poklapa, prijavi gresku
   if (parseToken(AsmToken::EndOfStatement, "unexpected token in argument list"))
     return true;
 
