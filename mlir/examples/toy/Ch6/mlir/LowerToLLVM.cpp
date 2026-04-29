@@ -123,6 +123,7 @@ private:
   static LLVM::LLVMFunctionType getPrintfType(MLIRContext *context) {
     auto llvmI32Ty = IntegerType::get(context, 32);
     auto llvmPtrTy = LLVM::LLVMPointerType::get(context);
+    //ekviv sa int printf(char*, ..)
     auto llvmFnType = LLVM::LLVMFunctionType::get(llvmI32Ty, llvmPtrTy,
                                                   /*isVarArg=*/true);
     return llvmFnType;
@@ -130,14 +131,18 @@ private:
 
   /// Return a symbol reference to the printf function, inserting it into the
   /// module if necessary.
+
+  //def kako se vrsi lowering
   static FlatSymbolRefAttr getOrInsertPrintf(PatternRewriter &rewriter,
                                              ModuleOp module) {
     auto *context = module.getContext();
+    //da li vec postoji printf, ako da koristi ga, necemo duplikate
     if (module.lookupSymbol<LLVM::LLVMFuncOp>("printf"))
       return SymbolRefAttr::get(context, "printf");
 
     // Insert the printf function into the body of the parent module.
     PatternRewriter::InsertionGuard insertGuard(rewriter);
+    //ubacivanje printfa u modul
     rewriter.setInsertionPointToStart(module.getBody());
     LLVM::LLVMFuncOp::create(rewriter, module.getLoc(), "printf",
                              getPrintfType(context));
@@ -155,6 +160,7 @@ private:
       OpBuilder::InsertionGuard insertGuard(builder);
       builder.setInsertionPointToStart(module.getBody());
       auto type = LLVM::LLVMArrayType::get(
+          //pointer na char
           IntegerType::get(builder.getContext(), 8), value.size());
       global = LLVM::GlobalOp::create(builder, loc, type, /*isConstant=*/true,
                                       LLVM::Linkage::Internal, name,

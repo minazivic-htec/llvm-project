@@ -109,24 +109,42 @@ static int loadMLIR(llvm::SourceMgr &sourceMgr, mlir::MLIRContext &context,
 }
 
 static int dumpMLIR() {
+  //kreira novi mlir context
   mlir::MLIRContext context;
+  //mlircontext cuva jezik tj dijalekte i operacije
+  //a modul je instanca programa u tom okruzenju tj kontekstu s tim jezikom dijalektima operacijama
+  //moduleop je ssa ir graf
   // Load our Dialect in this MLIR Context.
+  //ucita nas dijalekt u njega, tako se registruju nase operacije tj nas dijalekt
   context.getOrLoadDialect<mlir::toy::ToyDialect>();
 
   mlir::OwningOpRef<mlir::ModuleOp> module;
   llvm::SourceMgr sourceMgr;
   mlir::SourceMgrDiagnosticHandler sourceMgrHandler(sourceMgr, &context);
+  //loadMLIR daje ili MLIR iz ch2 proizveden preko ASTa, ili MLIR fajl direktno
+  //tj daje mlir::ModuleOp module
   if (int error = loadMLIR(sourceMgr, context, module))
     return error;
 
   if (enableOpt) {
+    //zgrabi pass managre(scheduler za optimizacije) ovog modula
     mlir::PassManager pm(module.get()->getName());
     // Apply any generic pass manager command line options and run the pipeline.
+    //prihvati cl opcije za passove
     if (mlir::failed(mlir::applyPassManagerCLOptions(pm)))
       return 4;
 
     // Add a run of the canonicalizer to optimize the mlir module.
+    //ubaciti canonicalizer pass
+    //on je mlir build in pass koji skuplja iz svih dijalekata canon patternse i primenjuje ih
+    //on se ovde kreira, ali je takav da zna da kad se bude pokrenuo, morace da skupi sve canon patterne
     pm.addNestedPass<mlir::toy::FuncOp>(mlir::createCanonicalizerPass());
+    //kad se uradi run.(*module), startuje se canonicalizerPass
+    //on skupi patterne, za svaku operaciju iz operacija iz dialect registryja za taj kontekst...
+    //..radi getCanonicalizationPatterns(), tj
+    //tad se poziva nas kod results.add<..imeOpRewritePatterna>(context);
+    //MLIR napravi globalnu listu patterna
+    //onda se ide kroz IR matchuju patterni i applyuju rewritovi
     if (mlir::failed(pm.run(*module)))
       return 4;
   }

@@ -255,6 +255,7 @@ static int dumpLLVMIR(mlir::ModuleOp module) {
   return 0;
 }
 
+//mlir input, translation to llvm
 static int runJit(mlir::ModuleOp module) {
   // Initialize LLVM targets.
   llvm::InitializeNativeTarget();

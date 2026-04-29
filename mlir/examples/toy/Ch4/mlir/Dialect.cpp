@@ -251,6 +251,8 @@ void AddOp::print(mlir::OpAsmPrinter &p) { printBinaryOp(p, *this); }
 
 /// Infer the output shape of the AddOp, this is required by the shape inference
 /// interface.
+
+//ovde dodamo inferShapes() za svaku operaciju pojedinacno onako kako zelimo
 void AddOp::inferShapes() { getResult().setType(getLhs().getType()); }
 
 //===----------------------------------------------------------------------===//

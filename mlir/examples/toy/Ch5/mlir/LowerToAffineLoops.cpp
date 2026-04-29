@@ -48,6 +48,7 @@ using namespace mlir;
 //===----------------------------------------------------------------------===//
 
 /// Convert the given RankedTensorType into the corresponding MemRefType.
+//konverzija tensora u memref
 static MemRefType convertTensorToMemRef(RankedTensorType type) {
   return MemRefType::get(type.getShape(), type.getElementType());
 }
@@ -141,6 +142,7 @@ using MulOpLowering = BinaryOpLowering<toy::MulOp, arith::MulFOp>;
 // ToyToAffine Conversion Patterns: Constant operations
 //===----------------------------------------------------------------------===//
 
+//lowerovanje za konstante, imamo i za funckije, return operaciju, print operaciju...
 struct ConstantOpLowering : public OpConversionPattern<toy::ConstantOp> {
   using OpConversionPattern<toy::ConstantOp>::OpConversionPattern;
 
@@ -153,12 +155,15 @@ struct ConstantOpLowering : public OpConversionPattern<toy::ConstantOp> {
     // When lowering the constant operation, we allocate and assign the constant
     // values to a corresponding memref allocation.
     auto tensorType = llvm::cast<RankedTensorType>(op.getType());
+    //ovo koristimo za tensor->memref
     auto memRefType = convertTensorToMemRef(tensorType);
     auto alloc = insertAllocAndDealloc(memRefType, loc, rewriter);
 
     // We will be generating constant indices up-to the largest dimension.
     // Create these constants up-front to avoid large amounts of redundant
     // operations.
+
+    //iskoristimo memref za konverziju tipa
     auto valueShape = memRefType.getShape();
     SmallVector<Value, 8> constantIndices;
 
@@ -280,19 +285,30 @@ struct ReturnOpLowering : public OpConversionPattern<toy::ReturnOp> {
 // ToyToAffine Conversion Patterns: Transpose operations
 //===----------------------------------------------------------------------===//
 
+//logika za lowerovanje ove konkretne funkcije, tj kako, na koji nacin, je transformisemo
+//oo je sama definicija patterna, koja handluje lowering toy.transpose operacije
 struct TransposeOpLowering : public OpConversionPattern<toy::TransposeOp> {
   using OpConversionPattern<toy::TransposeOp>::OpConversionPattern;
 
   LogicalResult
+  //op je operacija iz Toy IR
+  //adaptor su remapirani operandi operacije, u ovom slucaju pre je bio tensor a sad ce biti memref
+  //writer pise novi IR
+  //adaptor vec ima prevedene operande, to ese desio tokom applyPartialConversion
   matchAndRewrite(toy::TransposeOp op, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const final {
     auto loc = op->getLoc();
+    //pravimo ugnjezden loop
     lowerOpToLoops(op, rewriter, [&](OpBuilder &builder, ValueRange loopIvs) {
+      //uzmi vec konvertovane operande
       Value input = adaptor.getInput();
 
       // Transpose the elements by generating a load from the
       // reverse indices.
+
+      //ovaj reversIvs radi swap za indices
       SmallVector<Value, 2> reverseIvs(llvm::reverse(loopIvs));
+      //vracamo Affine ops umesto Toy ops koje smo imali
       return affine::AffineLoadOp::create(builder, loc, input, reverseIvs);
     });
     return success();
@@ -322,14 +338,19 @@ struct ToyToAffineLoweringPass
 };
 } // namespace
 
+//ovde mi pisemo sta zelimo, tj koje loweringe, za nas sav lowering naseg dijalekta
 void ToyToAffineLoweringPass::runOnOperation() {
   // The first thing to define is the conversion target. This will define the
   // final target for this lowering.
+
+  //ovo je kao rulebook za legalne operacije koje zelimo da dobijemo za finalni IR
   ConversionTarget target(getContext());
 
   // We define the specific operations, or dialects, that are legal targets for
   // this lowering. In our case, we are lowering to a combination of the
   // `Affine`, `Arith`, `Func`, and `MemRef` dialects.
+
+  //ovi dijalekti su dozvoljeni u finalnom IR
   target.addLegalDialect<affine::AffineDialect, BuiltinDialect,
                          arith::ArithDialect, func::FuncDialect,
                          memref::MemRefDialect>();
@@ -340,7 +361,12 @@ void ToyToAffineLoweringPass::runOnOperation() {
   // to lower, `toy.print`, as `legal`. `toy.print` will still need its operands
   // to be updated though (as we convert from TensorType to MemRefType), so we
   // only treat it as `legal` if its operands are legal.
+
+  //sta ne smemo da imamo na kraju uopste, koji dijalekat
   target.addIllegalDialect<toy::ToyDialect>();
+
+  //ovde na osnovu nekog uslova, npr isa TensorType, odredimo da li je neka operacija legalna ili ne
+  //u ovom sluaju printop je legalna ako ne prima tensor type operande
   target.addDynamicallyLegalOp<toy::PrintOp>([](toy::PrintOp op) {
     return llvm::none_of(op->getOperandTypes(),
                          [](Type type) { return llvm::isa<TensorType>(type); });
@@ -348,7 +374,10 @@ void ToyToAffineLoweringPass::runOnOperation() {
 
   // Now that the conversion target has been defined, we just need to provide
   // the set of patterns that will lower the Toy operations.
+
+  //set paterana koji ce lowerovati ove nas etoy operacije
   RewritePatternSet patterns(&getContext());
+  //ovo su sve stvari koje smo mi implementirali vec, tj registracija paterana, odavde znamo kako se loweruju operacije
   patterns.add<AddOpLowering, ConstantOpLowering, FuncOpLowering, MulOpLowering,
                PrintOpLowering, ReturnOpLowering, TransposeOpLowering>(
       &getContext());
@@ -357,6 +386,12 @@ void ToyToAffineLoweringPass::runOnOperation() {
   // conversion. The conversion will signal failure if any of our `illegal`
   // operations were not converted successfully.
   if (failed(
+    //ide kroz sve operacije, koristi conversiontarget da proveri legalnost
+    //konvertuje tipove, tensor<...>->memref<...>
+    //kreira internu mapu sa ovim konverzijama
+    //izvrsava patterne, tj pronadje ih, pripremi adaptor i zove matchandrewrite odgovarajuci
+    //getoperation vraca root stabla IR i onda ga traversuje i primeni i uradi sve ovo, ima spisak targeta i patterana
+    //i onda to izvrsava za svaku operaciju
           applyPartialConversion(getOperation(), target, std::move(patterns))))
     signalPassFailure();
 }

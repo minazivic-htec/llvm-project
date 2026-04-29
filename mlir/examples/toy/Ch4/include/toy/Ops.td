@@ -18,6 +18,7 @@ include "mlir/IR/SymbolInterfaces.td"
 include "mlir/Interfaces/CallInterfaces.td"
 include "mlir/Interfaces/CastInterfaces.td"
 include "mlir/Interfaces/SideEffectInterfaces.td"
+//ShapeInferenceOpInterface definisemo u svom .td fajlu
 include "toy/ShapeInferenceInterface.td"
 
 // Provide a definition of the 'toy' dialect in the ODS framework so that we
@@ -115,10 +116,29 @@ def AddOp : Toy_Op<"add",
 // CastOp
 //===----------------------------------------------------------------------===//
 
+
+//dodajemo novu operaciju
+//toy.cast %input : tensor<...> to tensor<...>
+//postoji builtin fja za inlinovanje koja ocekuje tacno podudaranje tipova, npr poziv fje
+//%r = call @foo(%arg) : (tensor<2x3xf64>) -> tensor<2x3xf64>
+//a ako je fja efinisana tako da je 
+//func.func @foo(%arg0: tensor<*xf64>) -> tensor<*xf64>
+//tipovi argumenata su razliciti i inlinovanje nece raditi
+//u sustini moramo naglasiti da je ova konverzija bezbedna kako bi mlir mogao tokom inliner passa da je primeni
 def CastOp : Toy_Op<"cast", [
+    //castopinterface vec postoji, kaze mliru da se ova operacija ponasa kao cast
+  //i onda inliner zna da je koristi za konverziju
+  //i onda se u cpp negde primeni verifikacija da li su tipovi kompatabilni
+  //inliner radi na foru
+  //if (auto cast = dyn_cast<CastOpInterface>(op))
+  //i onda ako je okej, mi smo dali nasu toy.cast koja se koristi za ovo i prati adekvatna pravila
+  //opisuje ponasanje, kako da se shapovi matchuju
      DeclareOpInterfaceMethods<CastOpInterface>,
      DeclareOpInterfaceMethods<ShapeInferenceOpInterface>,
      Pure,
+     //ovo je traits, tj constraint
+     //govori da svi operandi i rezultati moraju da imaju isti shape
+     //to automatski generise emitError ako je operand shape razlicit od result shape
      SameOperandsAndResultShape
   ]> {
   let summary = "shape cast operation";

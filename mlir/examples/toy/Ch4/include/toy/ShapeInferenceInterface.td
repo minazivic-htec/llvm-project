@@ -15,6 +15,8 @@
 
 include "mlir/IR/OpBase.td"
 
+//ovo izgenerise cpp interfejs ShapeInference
+//koji se u ops.td dodaje zeljenim operacijama
 def ShapeInferenceOpInterface : OpInterface<"ShapeInference"> {
   let description = [{
     Interface to access a registered method to infer the return types for an
@@ -22,6 +24,9 @@ def ShapeInferenceOpInterface : OpInterface<"ShapeInference"> {
   }];
 
   let methods = [
+    //intefejs koji ima ovaj method
+    //tj svaka operacija koja ga implementira mora da definise void inferShapes()
+    //tj kaze da svaka op koja zna kako da izracuna svoj output shape moze da implementira ovaj interfejs
     InterfaceMethod<"Infer and set the output shape for the current operation.",
                     "void", "inferShapes">
   ];

@@ -53,6 +53,8 @@ namespace {
 ///   3) If the worklist is empty, the algorithm succeeded.
 ///
 struct ShapeInferencePass
+//nad funkcijom(FuncOp) toy-a se runnuje ovaj pass,
+//pass ne zna za sve nase operacije
     : public mlir::PassWrapper<ShapeInferencePass, OperationPass<toy::FuncOp>> {
   MLIR_DEFINE_EXPLICIT_INTERNAL_INLINE_TYPE_ID(ShapeInferencePass)
   StringRef getArgument() const override { return "toy-shape-inference"; }
@@ -82,6 +84,9 @@ struct ShapeInferencePass
 
       // Ask the operation to infer its output shapes.
       LDBG() << "Inferring shape for: " << *op;
+
+      //operation ima ptr na naziv operacije i na njene registrovane interfejse
+      ///ako moze da se castuje tj implementira taj interface pozvace se taj metod, znamo da moze
       if (auto shapeOp = dyn_cast<ShapeInference>(op)) {
         shapeOp.inferShapes();
       } else {
